@@ -421,6 +421,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     }
     return b;
   };
+  
   const socialOut = social ? socialButton('dfchat-social-out') : null;
 
   const root = el('div', `dfchat${touch ? ' touch' : ''}`);
@@ -439,15 +440,14 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   openBtn.type = 'button';
   const badgeOut = el('span', 'dfchat-badge');
   openBtn.append(badgeOut);
+  const tabs = el('div', 'dfchat-tabs');
 
-  const socialOut = social ? socialButton('dfchat-social-out') : null;
   if (social) tabs.append(socialButton('dfchat-social-tab'));
   
   closedView.append(peek, hint, status, here, openBtn, ...(socialOut ? [socialOut] : []));
   
   const box = el('div', 'dfchat-box');
   box.setAttribute('role', 'log');
-  const tabs = el('div', 'dfchat-tabs');
   const list = el('div', 'dfchat-list');
   const jump = el('button', 'dfchat-jump');   // CHAT-SCROLL: `N new - jump to newest`, under a reader who scrolled up
   jump.type = 'button';
