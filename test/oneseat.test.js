@@ -380,12 +380,12 @@ test('AUDIT ONESEAT H1: a press on "Play online here" is the panel\'s - pointerd
   panel.destroy();
 });
 
-test('AUDIT ONESEAT T6: "Play online here" is not the chat\'s to hide - it stands on the panel\'s root under the status line (never in the box, shut unless the chat is open), a hidden chat still draws it, and no Hide rule names it (mutants: off the root; hidden with the chat, in the render or by a rule)', () => {
+test('AUDIT ONESEAT T6: "Play online here" is not the chat\'s to hide - it stands in closedView under the status line (never in the box, shut unless the chat is open), a hidden chat still draws it, and no Hide rule names it (mutants: off the root; hidden with the chat, in the render or by a rule)', () => {
   const doc = fakeDocument(), win = fakeWindow();
   const panel = createChatPanel({ log: new ChatLog(), onSend: () => true, doc, win, overlay: () => false });
-  const [root] = find(doc.body, 'dfchat'), [status] = find(doc.body, 'dfchat-status'), [here] = find(doc.body, 'dfchat-here');
-  assert.equal(here.parent, root, 'on the root');
-  assert.equal(root.children.indexOf(here), root.children.indexOf(status) + 1, 'right under the line that says why');
+  const [root] = find(doc.body, 'dfchat'), [closedView] = find(doc.body, 'dfchat-closed-view'), [status] = find(doc.body, 'dfchat-status'), [here] = find(doc.body, 'dfchat-here');
+  assert.equal(here.parent, closedView, 'in closedView');
+  assert.equal(closedView.children.indexOf(here), closedView.children.indexOf(status) + 1, 'right under the line that says why');
   panel.setHidden(true);
   panel.render({ status: `World: ${SEAT_TEXT}`, here: { label: PLAY_HERE_LABEL, run: () => {} } });
   assert.equal(root.dataset.hidden, '1');
