@@ -12,13 +12,13 @@
 // untracked. THE STANDARD IS UNCHANGED: CI runs every file on every PR and before every deploy (.github/workflows/
 // verify.yml); this only decides what runs first, here.
 //
-//   npm run test:changed                       # run them
-//   node tools/testChanged.mjs --list          # print them, one a line
-//   node tools/testChanged.mjs --base HEAD~3   # changed since another point
+//   npm run test:changed                    # run them
+//   node tools/testChanged.mjs --list        # print them, one a line
+//   node tools/testChanged.mjs --base HEAD~3    # changed since another point
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, relative, normalize, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { isMain } from './lib/isMain.mjs';
 import { testFiles, runTests, runnerFlags } from './testShards.mjs';   // FAST-SUITE: run as every list of tests is run - longest first, every core
 
@@ -96,15 +96,83 @@ export function changedFiles(base = null, root = ROOT) {
   return [...new Set(lines.split('\n').map((l) => l.trim()).filter(Boolean))].sort();
 }
 
-function main(argv) {
+/** Run multiple test files concurrently, capture outputs, and present organized results. */
+async function runConcurrently(files, flags) {
+  console.log(`Running ${files.length} test file(s) concurrently...\n`);
+
+  const promises = files.map((file) => {
+    return new Promise((resolve) => {
+      const start = Date.now();
+      const child = spawn('node', ['--test', file, ...flags], {
+        cwd: ROOT,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', (d) => { stdout += d; });
+      child.stderr.on('data', (d) => { stderr += d; });
+
+      child.on('close', (code) => {
+        resolve({
+          file,
+          passed: code === 0,
+          duration: Date.now() - start,
+          output: stdout + stderr,
+        });
+      });
+    });
+  });
+
+  const results = await Promise.all(promises);
+
+  const failures = results.filter((r) => !r.passed);
+  const successes = results.filter((r) => r.passed);
+
+  // Print concise status list
+  for (const r of successes) {
+    console.log(`  ✔ ${r.file} (${r.duration}ms)`);
+  }
+  for (const r of failures) {
+    console.log(`  ✖ ${r.file} (${r.duration}ms)`);
+  }
+
+  // Group all failure details together at the end
+  if (failures.length > 0) {
+    console.log(`\n========================================`);
+    console.log(`❌ FAILURES SUMMARY (${failures.length} test file(s) failed)`);
+    console.log(`========================================\n`);
+
+    for (const f of failures) {
+      console.log(`----------------------------------------`);
+      console.log(`Failed Test: ${f.file}`);
+      console.log(`----------------------------------------`);
+      console.log(f.output.trim());
+      console.log();
+    }
+    return 1;
+  }
+
+  console.log(`\nAll ${files.length} test file(s) passed successfully!`);
+  return 0;
+}
+
+async function main(argv) {
   const at = argv.indexOf('--base');
   const changed = changedFiles(at >= 0 ? argv[at + 1] : null);
   const tests = testFiles();
   const chosen = testsFor(changed, tests);
   const files = chosen === 'all' ? tests : chosen;
   if (argv.includes('--list')) { for (const f of files) console.log(f); return 0; }
-  console.log(`${changed.length} changed files -> ${chosen === 'all' ? 'the whole suite (a file every test leans on changed)' : `${files.length} of ${tests.length} test files`}`);
-  return runTests(files, { extra: runnerFlags(argv) });
+  console.log(`${changed.length} changed files -> ${chosen === 'all' ? 'the whole suite (a file every test leans on changed)' : `${files.length} of${tests.length} test files`}`);
+
+  if (chosen === 'all') {
+    return runTests(files, { extra: runnerFlags(argv) });
+  }
+
+  return await runConcurrently(files, runnerFlags(argv));
 }
 
-if (isMain(import.meta.url)) process.exitCode = main(process.argv.slice(2));
+if (isMain(import.meta.url)) {
+  process.exitCode = await main(process.argv.slice(2));
+}
