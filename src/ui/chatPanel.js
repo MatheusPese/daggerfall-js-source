@@ -1,3 +1,4 @@
+
 import { isTextEntryTarget, swallowBrowserKey, bindings } from './input.js';
 import { actionForCode, codeMeans } from '../systems/inputActions.js';
 import { overlayOpen } from './enhancedOverlays.js';
@@ -60,12 +61,14 @@ ${PIXELIFY_FIVE_FACE}
   pointer-events: none; 
   ${PIXEL_FONT_CSS} 
   color: var(--bone, #e9e4d9); 
+  /* CHANGE: Use CSS grid to layer peek/closed elements and the open box in the same space */
   display: grid; 
   align-content: end;
 }
-.dfchat.touch { top: calc(72px + env(safe-area-inset-top, 0px)); }
+.dfchat-peek, .dfchat-box { 
+  grid-area: 1 / 1; 
+}
 
-/* Grid layering to maintain constant bounding box dimensions across states */
 .dfchat-closed-view, .dfchat-box { 
   grid-area: 1 / 1; 
   display: flex; 
@@ -75,11 +78,17 @@ ${PIXELIFY_FIVE_FACE}
   opacity: 0; 
   pointer-events: none; 
 }
+
 .dfchat-closed-view { 
   visibility: visible; 
   opacity: 1; 
 }
+
+
+
+
 .dfchat-closed-view > * { pointer-events: auto; }
+
 .dfchat[data-state="open"] .dfchat-closed-view { 
   visibility: hidden; 
   opacity: 0; 
@@ -94,10 +103,30 @@ ${PIXELIFY_FIVE_FACE}
 .dfchat-peek { 
   display: flex; 
   flex-direction: column; 
+  /* CHANGE: Anchor messages to the bottom of the bounding box */
   justify-content: flex-end; 
   gap: 3px; 
+  /* Add bottom padding so messages stay clear of the prompt/buttons below */
   padding: 8px 9px 44px 9px; 
 }
+
+
+
+.dfchat-box { 
+  position: relative; 
+  background: rgba(14, 16, 19, .84); 
+  border: ${CHAT_BOX_BORDER}px solid var(--iron, #2b323b); 
+  border-radius: 6px; 
+  backdrop-filter: blur(4px); 
+}
+
+
+
+
+.dfchat.touch { top: calc(72px + env(safe-area-inset-top, 0px)); }
+
+
+
 .dfchat-line { flex: none; font-size: calc(13px * var(--dfchat-scale, 1)); line-height: 1.35; overflow-wrap: anywhere; overflow: hidden; text-shadow: ${PIXEL_TEXT_SHADOW}; }
 .dfchat-name { color: ${NAME_COLOURS.other.light}; font-weight: 600; }   /* NAME-INK: a name is never the words' colour */
 .dfchat-tag { color: var(--dim, #9a9486); font-size: calc(11px * var(--dfchat-scale, 1)); margin: 0 6px 0 2px; }
@@ -113,12 +142,12 @@ ${PIXELIFY_FIVE_FACE}
 .dfchat-emoji-pick { background: none; border: 0; border-radius: 3px; cursor: pointer; font-size: 18px; line-height: 1; width: 32px; height: 32px; padding: 0; }
 .dfchat-emoji-pick:hover, .dfchat-emoji-pick:focus-visible { background: var(--iron, #2b323b); }
 /* ...and it is the DESKTOP's: every phone keyboard carries an emoji key of its own, and on a 320px phone this button
-    took the field down to 67px (tools/chatChanProbe.mjs). The touch skin keeps the field; the shortcodes work on both. */
+   took the field down to 67px (tools/chatChanProbe.mjs). The touch skin keeps the field; the shortcodes work on both. */
 .dfchat.touch .dfchat-emoji, .dfchat.touch .dfchat-emojis { display: none; }
 /* ...and in a box the SCREEN narrowed below any width a drag can choose (CHAT_WIDTH_MIN: a phone-wide window on the
-    desktop skin), the button gives its 36px back to the field - there it took the field from 129px to 93px, narrower
-    than any skin's field before it (the touch skin's at 320px, 115px; tools/chatChanProbe.mjs). The grid is not hidden
-    with it: one opened in a wider box stays inside this one, and a pick or Escape still closes it. */
+   desktop skin), the button gives its 36px back to the field - there it took the field from 129px to 93px, narrower
+   than any skin's field before it (the touch skin's at 320px, 115px; tools/chatChanProbe.mjs). The grid is not hidden
+   with it: one opened in a wider box stays inside this one, and a pick or Escape still closes it. */
 @container (width < ${CHAT_WIDTH_MIN - 2 * CHAT_BOX_BORDER}px) { .dfchat-emoji { display: none; } }
 /* EMOTE1: an action - "Bran waves at Ann." - the words leaning after the name, in the name's own warmth */
 .dfchat-line.me .dfchat-text { font-style: italic; color: #dccfae; }
@@ -165,7 +194,6 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-open { display: none; pointer-events: auto; margin-top: 4px; align-items: center; gap: 6px; }
 .dfchat.touch .dfchat-open { display: inline-flex; }
 .dfchat.touch .dfchat-hint { display: none; }
-.dfchat-box { position: relative; background: rgba(14, 16, 19, .84); border: ${CHAT_BOX_BORDER}px solid var(--iron, #2b323b); border-radius: 6px; backdrop-filter: blur(4px); }
 .dfchat-tabs { display: flex; gap: 2px; padding: 4px 4px 0; border-bottom: 1px solid var(--iron, #2b323b); }
 .dfchat-tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--dim, #9a9486); font: inherit; font-size: 13px;
   letter-spacing: .05em; text-transform: uppercase; padding: 6px 10px; cursor: pointer; flex: none; white-space: nowrap; }
@@ -344,7 +372,11 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
    one small control left to bring it back. */
 .dfchat-hide { padding: 2px 8px; font-size: 12px; }
 .dfchat-show { display: none; pointer-events: auto; align-self: flex-start; font-size: 12px; padding: 4px 10px; }
-.dfchat[data-hidden="1"] .dfchat-closed-view,
+.dfchat[data-hidden="1"] .dfchat-peek,
+.dfchat[data-hidden="1"] .dfchat-hint,
+.dfchat[data-hidden="1"] .dfchat-open,
+.dfchat[data-hidden="1"] .dfchat-status,
+.dfchat[data-hidden="1"] .dfchat-social-out,
 .dfchat[data-hidden="1"] .dfchat-box { display: none; }
 .dfchat[data-hidden="1"] .dfchat-show { display: inline-flex; }
 `;
@@ -376,12 +408,13 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
   const root = el('div', `dfchat${touch ? ' touch' : ''}`);
   root.dataset.state = 'closed';
-
+  
   const closedView = el('div', 'dfchat-closed-view');
+  
   const peek = el('div', 'dfchat-peek');
   const hint = el('div', 'dfchat-hint', 'Enter to chat');
   const status = el('div', 'dfchat-status');
-  const here = el('button', 'dfchat-here');   // ONE-SEAT: "Play online here", while the host says this tab is out
+  const here = el('button', 'dfchat-here');   
   here.type = 'button';
   let hereRun = null;
   here.addEventListener('click', (e) => { e.preventDefault?.(); e.stopPropagation?.(); hereRun?.(); });
@@ -391,7 +424,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   openBtn.append(badgeOut);
 
   closedView.append(peek, hint, status, here, openBtn);
-
+  
   const box = el('div', 'dfchat-box');
   box.setAttribute('role', 'log');
   const tabs = el('div', 'dfchat-tabs');
@@ -412,9 +445,121 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   grip.setAttribute('aria-label', 'Resize chat');
   grip.setAttribute('title', 'Drag to resize - wider is larger text, taller is more lines. Double-click for the usual size.');
   const hide = el('button', 'dfchat-hide', 'Hide'); hide.type = 'button';
-  const show = el('button', 'dfchat-show', 'Chat'); show.setAttribute('aria-label', 'Show chat');
-
-  root.append(closedView, box, show);
+  hide.setAttribute('aria-label', 'Hide chat');
+  const show = el('button', 'dfchat-show', 'Chat'); show.type = 'button';
+  show.setAttribute('aria-label', 'Show chat');
+  // EMOTE1 (Addison Knox: "Emotes, be it emojis ..."): THE PICKER - a button in the form and a grid over it. Every
+  // listener is the element's own (the panel keeps its one window listener, AUDIT CHAT D5): a pick lands at the caret
+  // and closes the grid, the button toggles it, and Escape in the field and the panel's close take it down.
+  const emojiBtn = el('button', 'dfchat-emoji', '\u{1F642}'); emojiBtn.type = 'button';
+  emojiBtn.setAttribute('aria-label', 'Emoji'); emojiBtn.title = 'Emoji - or type a shortcode like :smile:';
+  const emojiGrid = el('div', 'dfchat-emojis');
+  emojiGrid.setAttribute('role', 'group'); emojiGrid.setAttribute('aria-label', 'Emoji');   // a set of buttons - a listbox's children would have to be options
+  const picked = new Set();
+  for (const [code, ch] of SHORTCODE_LIST) {   // one button an emoji, named by its FIRST code, in the table's order
+    if (picked.has(ch)) continue;
+    picked.add(ch);
+    const b = el('button', 'dfchat-emoji-pick', ch); b.type = 'button';
+    b.title = `:${code}:`; b.setAttribute('aria-label', code.replace(/_/g, ' '));
+    b.addEventListener('click', () => { insertAtCaret(ch); setEmojiOpen(false); });
+    emojiGrid.append(b);
+  }
+  form.append(input, emojiBtn, send, hide, close);
+  // CHAT-R2: the two columns. `main` holds what was there before, so
+  // nothing about the list, the tabs or the form moved; `who` is new
+  // beside it and scrolls on its own.
+  let emojiOpen = false;
+  const setEmojiOpen = (on) => {
+    emojiOpen = !!on;
+    const cls = emojiOpen ? 'dfchat-emojis on' : 'dfchat-emojis';
+    if (emojiGrid.className !== cls) emojiGrid.className = cls;
+    emojiBtn.setAttribute('aria-expanded', emojiOpen ? 'true' : 'false');
+  };
+  /** EMOTE1: the pick into the field where the caret stands (or at its end), the caret after it, the field bounded. */
+  const insertAtCaret = (ch) => {
+    const v = String(input.value ?? '');
+    const a = Number.isInteger(input.selectionStart) ? input.selectionStart : v.length;
+    const b = Number.isInteger(input.selectionEnd) ? input.selectionEnd : a;
+    const next = v.slice(0, a) + ch + v.slice(b);
+    if (next.length > CHAT_MAX) return;
+    input.value = next;
+    const at = a + ch.length;
+    input.setSelectionRange?.(at, at);
+    input.focus?.();
+  };
+  emojiBtn.addEventListener('click', () => { setEmojiOpen(!emojiOpen); input.focus?.(); });
+  const cols = el('div', 'dfchat-cols');
+  const main = el('div', 'dfchat-main');
+  const who = el('div', 'dfchat-who');
+  const whoHead = el('div', 'dfchat-whohead', rosterTitle(0));
+  const whoList = el('div', 'dfchat-wholist');
+  const whoMore = el('div', 'dfchat-who-more');
+  const whoInner = el('div', 'dfchat-who-inner');   // CHAT-FIT: absolute inside the column, so the column takes the conversation's height and not the room's
+  whoInner.append(whoHead, whoList, whoMore);   // CHAT-FIND: the search strip goes above the heading (placeFind)
+  who.append(whoInner);
+  const tabButtons = new Map();
+  const tabList = el('div', 'dfchat-tablist');   // CHAT-CHAN: the tabs' own strip - the Social button stands beside it, in the bar
+  for (const tab of log.tabs) {
+    const b = el('button', 'dfchat-tab', tab.label);
+    b.type = 'button'; b.dataset.tab = tab.id;
+    const badge = el('span', 'dfchat-badge');
+    badge.setAttribute('aria-hidden', 'true');   // CHAT-CHAN: a dot to the eye - the count is the button's name (paint)
+    b.append(badge);
+    b.addEventListener('click', () => { if (query) setQuery(''); log.select(tab.id); paint(true); input.focus?.(); });   // CHAT-FIND: a tab pressed under a search is that tab's conversation - the search gives way to it
+    tabList.append(b);
+    tabButtons.set(tab.id, { b, badge, name: null });
+  }
+  tabs.append(tabList);
+  // SOC3: the two Social buttons - one for each state of the panel, built only when the host asked for them. The
+  // badge is a SPAN of the chat's own badge class, so a request waiting on the player counts the way an unread line
+  // does; its colour in the sheet is what keeps the two from reading as one number.
+  const socialBadges = [];
+  const socialButton = (cls) => {
+    const b = el('button', `dfchat-social ${cls}`, 'Social');
+    b.type = 'button';
+    // AUDIT SOC C21: NO aria-label ON THE BUTTON. One overrode the whole of its content, so the badge - the count of
+    // requests and invitations waiting on this player, the only thing on the button that ever changes - was read as
+    // "Friends and party" and nothing else. The word stays a title for the mouse; the badge names ITSELF, and the
+    // button's accessible name becomes "Social 3" the moment there is a 3.
+    b.setAttribute('title', 'Friends and party');
+    const badge = el('span', 'dfchat-badge');
+    b.append(badge); socialBadges.push(badge);
+    b.addEventListener('click', () => social.onToggle?.());
+    return b;
+  };
+  const socialOut = social ? socialButton('dfchat-social-out') : null;
+  if (social) tabs.append(socialButton('dfchat-social-tab'));
+  main.append(list, jump, emojiGrid, form);
+  cols.append(main, who);
+  // CHAT-FIND: the search strip - under the tabs, over the conversation AND the roster, because it filters both. Its
+  // listeners are the elements' own (the panel keeps its one window listener, AUDIT CHAT D5); its keys are taken in
+  // that listener, as the chat field's are (onKey), so a name typed here walks no one.
+  const findRow = el('div', 'dfchat-find');
+  const search = el('input', 'dfchat-search');
+  search.type = 'text'; search.maxLength = CHAT_FIND_MAX; search.placeholder = 'Find a player'; search.autocomplete = 'off'; search.spellcheck = false;
+  search.setAttribute('role', 'searchbox');
+  search.setAttribute('aria-label', 'Find a player in the chat');
+  search.title = 'A name, or part of one - every tab\'s lines from or about them, and who is online by that name. #tag finds one player of a shared name.';
+  const findCount = el('span', 'dfchat-find-count');
+  findCount.setAttribute('aria-live', 'polite');   // the one live word in the box: how many lines the search found
+  const findClear = el('button', 'dfchat-find-clear', '✕'); findClear.type = 'button';
+  findClear.setAttribute('aria-label', 'Clear the search');
+  findRow.append(search, findCount, findClear);
+  /** CHAT-FIND: where the strip stands - above the player list (the owner's choice: it is seen there), or, where the
+   *  list is not drawn (the sheet hides the column under 560px; a host with no roster), above the conversation. Moved
+   *  only when that answer changes, by laying the column it goes into in its whole order (the move takes it out of the
+   *  other; the conversation's own nodes are kept, never rebuilt). */
+  let findIn = null;
+  const placeFind = () => {
+    const inWho = !!roster && vw() > 560;
+    if (findIn === inWho) return;
+    findIn = inWho;
+    if (inWho) whoInner.replaceChildren(findRow, whoHead, whoList, whoMore);
+    else main.replaceChildren(findRow, list, jump, emojiGrid, form);
+  };
+  box.append(tabs, cols, grip);   // CHAT-SIZE: the grip stands at the BOX's corner, over both columns
+  // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
+  root.append(closedView, box, ...(socialOut ? [socialOut] : []), show);
   doc.body.append(root);
 
   let painted = -1;
@@ -1021,7 +1166,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   placeFind();   // CHAT-FIND: the strip is in the page from the start, where the screen says it goes
 
   return {
-    root, input,
+    root, input, closedView,
     open, close: closePanel, toggle: () => (log.open ? closePanel() : open()),
     isOpen: () => log.open,
     /** CHAT-FIND: the search - set it (the chat opened for it) and read it back ('' none). */
