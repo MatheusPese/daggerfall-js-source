@@ -109,6 +109,8 @@ const btnBy = (n, label) => buttons(n).find((b) => b.textContent === label);
 
 // ═══ THE BUTTON ══════════════════════════════════════════════════════
 
+// ═══ THE BUTTON ══════════════════════════════════════════════════════
+
 test('SOC3: the Social button stands in BOTH chat states with one badge law, is no chat tab, swallows its press, and a host that asked for none gets none (mutants: the button drawn on touch alone; the badge counting unread lines; a badge drawn at zero; the tab-bar button classed dfchat-tab; the press reaching the host)', () => {
   const log = new ChatLog({ now: () => T0 });
   const doc = fakeDocument(), win = fakeWindow();
@@ -120,38 +122,38 @@ test('SOC3: the Social button stands in BOTH chat states with one badge law, is 
   assert.equal(both.length, 2, 'one for each state of the chat - closed beside the Chat button, open in the tab bar');
   assert.deepEqual(both.map((b) => b.textContent), ['Social', 'Social']);
   assert.equal(find(root, 'dfchat-social-out').length, 1);
-  assert.equal(one(one(root, 'dfchat-box'), 'dfchat-social-tab')?.parent?.className, 'dfchat-tabs', 'the open state\'s sits IN the tab bar');
-  assert.equal(find(root, 'dfchat-tab').length, log.tabs.length, 'and it is not a tab: every tab button is a row of the log');   // CHAT-CHAN: four rows now
+  assert.equal(one(one(root, 'dfchat-box'), 'dfsocial-tab')?.parent?.className, 'dfsocial-tabs', 'the open state\'s sits IN the tab bar');
+  assert.equal(find(root, 'dfsocial-tab').length, log.tabs.length, 'and it is not a tab: every tab button is a row of the log');   // CHAT-CHAN: four rows now
   // AUDIT SOC C21: NO aria-label on the button. One overrode the whole of its content, so the badge - the only part
   // that ever changes - was never read out. The words are a title for the mouse, and the badge labels ITSELF.
   assert.equal(both[0].attrs['aria-label'], undefined, 'no label that swallows the badge');
   assert.equal(both[0].attrs.title, 'Friends and party');
 
   // the badge: what is WAITING on the player, which is not what the chat's own badge counts
-  assert.deepEqual(both.map((b) => one(b, 'dfchat-badge').textContent), ['', ''], 'nothing waiting: no badge (the sheet hides an empty one)');
+  assert.deepEqual(both.map((b) => one(b, 'dfsocial-badge').textContent), ['', ''], 'nothing waiting: no badge (the sheet hides an empty one)');
   log.push('world', { id: 'x', name: 'Bob', text: 'hi' });
   panel.render();
-  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfchat-badge').textContent), ['', ''], 'an unread LINE is not a pending request');
+  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfsocial-badge').textContent), ['', ''], 'an unread LINE is not a pending request');
   pending = 3; panel.render();
-  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfchat-badge').textContent), ['3', '3'], 'both badges say the same number');
-  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfchat-badge').attrs['aria-label']), ['3 waiting', '3 waiting'],
+  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfsocial-badge').textContent), ['3', '3'], 'both badges say the same number');
+  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfsocial-badge').attrs['aria-label']), ['3 waiting', '3 waiting'],
     'AUDIT SOC C21: and the badge says what its number MEANS, rather than being read out as a bare digit');
   pending = 0; panel.render();
-  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfchat-badge').textContent), ['', '']);
-  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfchat-badge').attrs['aria-label']), ['', ''], 'and says nothing when there is nothing');
+  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfsocial-badge').textContent), ['', '']);
+  assert.deepEqual(find(root, 'dfchat-social').map((b) => one(b, 'dfsocial-badge').attrs['aria-label']), ['', ''], 'and says nothing when there is nothing');
 
   both[0].fire('click'); assert.equal(toggles, 1, 'the closed state\'s button toggles the panel');
   both[1].fire('click'); assert.equal(toggles, 2, 'and so does the tab bar\'s');
-  for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) assert.equal(both[0].fire(t).stopped, true, `${t} on the Social button is the panel's: no swing on a thumb tap`);
+  for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) assert.equal(both[0].fire(t).stopped, true, `${t} on the Social button is the panel\'s: no swing on a thumb tap`);
   for (const t of ['pointerup', 'mouseup', 'touchend']) assert.equal(both[0].fire(t).stopped, false, 'a RELEASE still reaches the host (AUDIT CHAT C5)');
 
   // the sheet: drawn on a desktop too (the Chat button is touch-only), away when the box is open, away when hidden
-  assert.match(CHAT_CSS, /\.dfchat-social-out \{ display: inline-flex;/, 'the closed state\'s button is drawn on every device - Enter opens the chat and nothing yet opens this');
-  assert.match(CHAT_CSS, /\.dfchat\[data-state="open"\] \.dfchat-social-out \{ display: none; \}/);
-  assert.match(CHAT_CSS, /\.dfchat\[data-hidden="1"\] \.dfchat-social-out,/, 'CHAT-R2: Hide takes it with everything else that draws over the world');
+  assert.match(CHAT_CSS, /\.dfsocial-social-out \{ display: inline-flex;/, 'the closed state\'s button is drawn on every device - Enter opens the chat and nothing yet opens this');
+  assert.match(CHAT_CSS, /\.dfchat\[data-state="open"\] \.dfsocial-social-out \{ display: none; \}/);
+  assert.match(CHAT_CSS, /\.dfchat\[data-hidden="1"\] \.dfsocial-social-out,/, 'CHAT-R2: Hide takes it with everything else that draws over the world');
   // AUDIT SOC C24: the closed state's two buttons share a line, so they share a size and do not touch. Measured in
   // Chromium at 430x860 with the touch skin: Social was 84x23 beside a 34-tall Chat button and flush against it.
-  assert.match(CHAT_CSS, /\.dfchat-social \{[^}]*font-size: 14px; padding: 6px 10px;/, 'the Chat button\'s own type and padding (the shared .dfchat-send/.dfchat-open rule)');
+  assert.match(CHAT_CSS, /\.dfsocial \{[^}]*font-size: 14px; padding: 6px 10px;/, 'the Chat button\'s own type and padding (the shared .dfchat-send/.dfchat-open rule)');
   assert.match(CHAT_CSS, /\.dfchat-send, \.dfchat-close, \.dfchat-open, \.dfchat-hide, \.dfchat-show \{[^}]*font-size: 14px; padding: 6px 10px;/, '...which is that rule, unchanged');
   assert.match(CHAT_CSS, /\.dfchat\.touch \.dfchat-open \{ margin-right: 6px; \}/, 'and a 6px gap where both are drawn');
 
