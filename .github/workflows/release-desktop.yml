@@ -15,6 +15,21 @@ on:
         description: 'Tag to create a Release at (app-v*); empty = run artifacts only'
         required: false
         default: ''
+      run_full_check:
+        description: 'Run full test suite & check (false = test changed files only)'
+        required: false
+        type: boolean
+        default: true
+      target_os:
+        description: 'Target OS to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
 
 permissions:
   contents: read
@@ -63,12 +78,28 @@ jobs:
           echo "update=$UPDATE" >> "$GITHUB_OUTPUT"
           echo "release tag: '${TAG:-<none - artifacts only>}'"
 
+  select-os:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        shell: bash
+        run: |
+          TARGET="${{ inputs.target_os }}"
+          if [ -z "$TARGET" ] || [ "$TARGET" = "all" ]; then
+            echo 'matrix={"os": ["ubuntu-latest", "windows-latest", "macos-latest"]}' >> $GITHUB_OUTPUT
+          else
+            echo "matrix={\"os\": [\"$TARGET\"]}" >> $GITHUB_OUTPUT
+          fi
+
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -76,10 +107,15 @@ jobs:
           cache: 'npm'
       - name: Install site dependencies
         run: npm ci
-      - name: Gate (the whole suite)
+
+      - name: Run Full Gate Check
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
         run: npm run check
 
-  # Build the site once on Linux to share across OS legs
+      - name: Run Fast Changed-Files Test
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_check == false }}
+        run: npm run test:changed
+
   build-site:
     needs: [version, gate]
     runs-on: ubuntu-latest
@@ -102,15 +138,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: site-dist
-          path: dist/ # Adjust if your site build output directory is different (e.g., build/)
+          path: dist/
           retention-days: 1
 
   build:
-    needs: [version, build-site]
+    needs: [version, build-site, select-os]
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+      matrix: ${{ fromJson(needs.select-os.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
