@@ -406,6 +406,23 @@ export function isOpenKey(e, { canOpen = () => true, overlay = overlayOpen, acti
 export function createChatPanel({ log, onSend, roster = null, canOpen = () => true, onOpen = null, onClose = null, above = () => false, action = actionOfKey, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), social = null, nameColor = null, rowActions = null, badgeOf = null } = {}) {
   injectChatStyle(doc);
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
+
+  // Declare socialBadges and socialButton at the top to prevent TDZ errors
+  const socialBadges = [];
+  const socialButton = (cls) => {
+    const b = el('button', `dfchat-social ${cls}`, 'Social');
+    b.type = 'button';
+    b.setAttribute('title', 'Friends and party');
+    const badge = el('span', 'dfchat-badge');
+    b.append(badge); socialBadges.push(badge);
+    b.addEventListener('click', () => social.onToggle?.());
+    for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) {
+      b.addEventListener(t, (e) => e.stopPropagation());
+    }
+    return b;
+  };
+  const socialOut = social ? socialButton('dfchat-social-out') : null;
+
   const root = el('div', `dfchat${touch ? ' touch' : ''}`);
   root.dataset.state = 'closed';
   
