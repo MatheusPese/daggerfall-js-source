@@ -107,7 +107,7 @@ ${PIXELIFY_FIVE_FACE}
   justify-content: flex-end; 
   gap: 3px; 
   /* Add bottom padding so messages stay clear of the prompt/buttons below */
-  padding: 8px 9px 44px 9px; 
+  padding: 8px 9px 9px 9px; 
 }
 
 
@@ -423,7 +423,10 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const badgeOut = el('span', 'dfchat-badge');
   openBtn.append(badgeOut);
 
-  closedView.append(peek, hint, status, here, openBtn);
+  const socialOut = social ? socialButton('dfchat-social-out') : null;
+  if (social) tabs.append(socialButton('dfchat-social-tab'));
+  
+  closedView.append(peek, hint, status, here, openBtn, ...(socialOut ? [socialOut] : []));
   
   const box = el('div', 'dfchat-box');
   box.setAttribute('role', 'log');
@@ -527,8 +530,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     }
     return b;
   };
-  const socialOut = social ? socialButton('dfchat-social-out') : null;
-  if (social) tabs.append(socialButton('dfchat-social-tab'));
+
   main.append(list, jump, emojiGrid, form);
   cols.append(main, who);
   // CHAT-FIND: the search strip - under the tabs, over the conversation AND the roster, because it filters both. Its
@@ -559,7 +561,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   box.append(tabs, cols, grip);   // CHAT-SIZE: the grip stands at the BOX's corner, over both columns
   // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
-  root.append(closedView, box, ...(socialOut ? [socialOut] : []), show);
+  root.append(closedView, box, show);
   doc.body.append(root);
 
   let painted = -1;
