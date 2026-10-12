@@ -121,13 +121,17 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
         run: npm run lint
 
-      - name: Run Type Check
+      - name: Run Types
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
-        run: npm run typecheck
+        run: npm run types
 
-      - name: Run Tests
+      - name: Run Test
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
         run: npm test
+
+      - name: Run Build Check
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
+        run: npm run build
 
       - name: Run Fast Changed-Files Test
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_check == false }}
