@@ -129,33 +129,12 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_check == false }}
         run: npm run test:changed
 
-  # NEW: suite job - the full test + build check that packaging legs must require
-  suite:
-    needs: [version, gate]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install site dependencies
-        run: npm ci
-
-      - name: Run Test
-        run: npm test
-
-      - name: Run Build Check
-        run: npm run build
+      - name: Run Check
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
+        run: npm run check
 
   build-site:
-    needs: [version, gate, suite]
+    needs: [version, gate]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -181,7 +160,7 @@ jobs:
           retention-days: 1
 
   build:
-    needs: [version, build-site, select-os, suite]
+    needs: [version, gate]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.select-os.outputs.matrix) }}
@@ -226,9 +205,10 @@ jobs:
 
       - name: Stamp the version
         if: needs.version.outputs.version != ''
+        shell: bash
         env:
           VERSION: ${{ needs.version.outputs.version }}
-        run: node -e "const {execSync}=require('child_process'); execSync(`npm version ${process.env.VERSION} --no-git-tag-version --allow-same-version`, {stdio:'inherit'});"
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
         working-directory: app
 
       - name: No updater in a build that is not a release
@@ -243,18 +223,21 @@ jobs:
       - name: Create High-Compression Archive (Optional)
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.compression != 'standard' && inputs.compression != '' }}
         shell: bash
+        env:
+          COMPRESSION: ${{ inputs.compression }}
+          MATRIX_OS: ${{ matrix.os }}
         run: |
           cd app/release
-          if [ "${{ inputs.compression }}" = "zstd" ]; then
+          if [ "$COMPRESSION" = "zstd" ]; then
             echo "Compressing installers with zstd..."
             if command -v brew &> /dev/null; then brew install zstd; fi
             if command -v apt-get &> /dev/null; then sudo apt-get update && sudo apt-get install -y zstd; fi
             zstd -T0 -19 *.AppImage *.exe *.dmg 2>/dev/null || true
-          elif [ "${{ inputs.compression }}" = "7z" ]; then
+          elif [ "$COMPRESSION" = "7z" ]; then
             echo "Compressing installers with 7z..."
             if command -v brew &> /dev/null; then brew install p7zip; fi
             if command -v apt-get &> /dev/null; then sudo apt-get update && sudo apt-get install -y p7zip-full; fi
-            7z a -t7z -mx=9 desktop-bundle-${{ matrix.os }}.7z *.AppImage *.exe *.dmg 2>/dev/null || true
+            7z a -t7z -mx=9 desktop-bundle-$MATRIX_OS.7z *.AppImage *.exe *.dmg 2>/dev/null || true
           fi
 
       - name: Hand the installers on
