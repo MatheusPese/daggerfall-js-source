@@ -320,14 +320,14 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 /* AUDIT SOC C24: the closed-state Social button stands on the Chat button's own line, so it wears the Chat button's
    own font-size and padding (14px / 6px 10px - .dfchat-open, in the shared rule above) instead of a smaller pair
    that made the two different heights, and the Chat button carries a 6px right margin so they are not flush. */
-.dfchat-social { background: var(--iron, #2b323b); color: var(--bone, #e9e4d9); border: 0; border-radius: 3px; font: inherit;
+.dfchat-social, .dfsocial { background: var(--iron, #2b323b); color: var(--bone, #e9e4d9); border: 0; border-radius: 3px; font: inherit;
   font-size: 14px; padding: 6px 10px; cursor: pointer; align-items: center; }
 .dfchat.touch .dfchat-open { margin-right: 6px; }
-.dfchat-social-out { display: inline-flex; pointer-events: auto; margin-top: 4px; }
-.dfchat[data-state="open"] .dfchat-social-out { display: none; }
-.dfchat-social-tab { display: inline-flex; margin: 2px 4px 4px auto; }
+.dfchat-social-out, .dfsocial-social-out { display: inline-flex; pointer-events: auto; margin-top: 4px; }
+.dfchat[data-state="open"] .dfchat-social-out, .dfchat[data-state="open"] .dfsocial-social-out { display: none; }
+.dfchat-social-tab, .dfsocial-social-tab { display: inline-flex; margin: 2px 4px 4px auto; }
 /* a request waiting on YOU is not an unread line: its own colour, so the two badges never read as one count */
-.dfchat-social .dfchat-badge { background: #c8503c; color: #f6efe2; }
+.dfchat-social .dfchat-badge, .dfsocial .dfsocial-badge { background: #c8503c; color: #f6efe2; }
 
 /* SOC3: A ROSTER ROW IS A DOOR (Mac: "invite friends or other
    individuals"). The "other individuals" are the names in this column,
@@ -377,6 +377,7 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat[data-hidden="1"] .dfchat-open,
 .dfchat[data-hidden="1"] .dfchat-status,
 .dfchat[data-hidden="1"] .dfchat-social-out,
+.dfchat[data-hidden="1"] .dfsocial-social-out,
 .dfchat[data-hidden="1"] .dfchat-box { display: none; }
 .dfchat[data-hidden="1"] .dfchat-show { display: inline-flex; }
 `;
@@ -410,10 +411,11 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   // Declare socialBadges and socialButton at the top to prevent TDZ errors
   const socialBadges = [];
   const socialButton = (cls) => {
-    const b = el('button', `dfchat-social ${cls}`, 'Social');
+    const altCls = String(cls).startsWith('dfchat-') ? cls.replace(/^dfchat-/, 'dfsocial-') : `dfsocial-${cls}`;
+    const b = el('button', `dfchat-social ${cls} ${altCls}`, 'Social');
     b.type = 'button';
     b.setAttribute('title', 'Friends and party');
-    const badge = el('span', 'dfchat-badge');
+    const badge = el('span', 'dfsocial-badge dfchat-badge');
     b.append(badge); socialBadges.push(badge);
     b.addEventListener('click', () => social.onToggle?.());
     for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) {
