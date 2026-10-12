@@ -70,7 +70,15 @@ ${PIXELIFY_FIVE_FACE}
 }
 
 .dfchat.touch { top: calc(72px + env(safe-area-inset-top, 0px)); }
-.dfchat-peek { display: flex; flex-direction: column; gap: 3px; margin-top: 34px; padding-left: 9px; }
+.dfchat-peek { 
+  display: flex; 
+  flex-direction: column; 
+  /* CHANGE: Anchor messages to the bottom of the bounding box */
+  justify-content: flex-end; 
+  gap: 3px; 
+  /* Add bottom padding so messages stay clear of the "Enter to chat" prompt / buttons below */
+  padding: 8px 9px 44px 9px; 
+}
 .dfchat-line { flex: none; font-size: calc(13px * var(--dfchat-scale, 1)); line-height: 1.35; overflow-wrap: anywhere; overflow: hidden; text-shadow: ${PIXEL_TEXT_SHADOW}; }
 .dfchat-name { color: ${NAME_COLOURS.other.light}; font-weight: 600; }   /* NAME-INK: a name is never the words' colour */
 .dfchat-tag { color: var(--dim, #9a9486); font-size: calc(11px * var(--dfchat-scale, 1)); margin: 0 6px 0 2px; }
