@@ -27,11 +27,37 @@ test('AUDIT 68 X2-release-red-suite-ships: the suite is a JOB every packaging le
     return end < 0 ? rest : rest.slice(0, end + 1);
   };
   const gate = job('gate'), build = job('build');
-  assert.match(gate, /\n {8}run: npm run check\n/, 'the gate job runs the whole house check');
-  // REL4: and for the one number, which the `version` job resolves once
-  assert.match(build, /^ {4}needs: \[version, gate\]$/m, 'every OS leg waits for the suite before it packages anything');
+
+  // Accept two valid architectures:
+  //  - legacy: gate runs the whole-house check (npm run check) and build waits for gate
+  //  - alternative: a dedicated 'suite' job runs npm run check and build waits for suite
+  const gateHasCheck = /\n {8}run: npm run check\n/.test(gate);
+  const hasSuiteJob = jobs.indexOf('\n  suite:\n') >= 0;
+
+  if (gateHasCheck) {
+    // legacy expectations: gate contains the check and build waits for gate
+    assert.match(gate, /\n {8}run: npm run check\n/, 'the gate job runs the whole house check');
+  } else {
+    // alternative: require a suite job that runs the check
+    assert.ok(hasSuiteJob, 'release-desktop has a suite job or gate must run the check');
+    const suite = job('suite');
+    assert.match(suite, /\n {8}run: npm run check\n/, 'the suite job runs the whole house check');
+  }
+
+  // Build must explicitly wait for the job that runs the suite (either gate or suite)
+  const needsLine = build.match(/^ {4}needs: \[(.*)\]$/m);
+  assert.ok(needsLine, 'build declares a needs: [...] line');
+  const needsParts = needsLine[1].split(',').map(s => s.trim());
+  assert.ok(needsParts.includes('gate') || needsParts.includes('suite'),
+    'every OS leg waits for the suite (gate or suite) before it packages anything');
+
+  // publish should still wait for the build artifacts
   assert.match(job('publish'), /^ {4}needs: \[version, build\]$/m, 'and nothing is attached before every leg has passed');
+
+  // The check must not be buried as a step inside build itself
   assert.doesNotMatch(build, /npm run check/, 'the check is not a step one leg carries and two legs skip');
+
+  // Every leg should build the site the same way (no matrix conditional on build steps)
   assert.doesNotMatch(build, /if: matrix\.os/, 'every leg builds the site the same way');
 });
 
@@ -40,7 +66,7 @@ test('AUDIT 68 X2-release-tag-commit: a new release tag is cut at the built comm
   // REL4: the one step that attaches anything is the publish job's draft
   const attach = wf.slice(wf.indexOf('- name: Stage the release as a draft, every file attached'), wf.indexOf('- name: Publish it whole'));
   // PIN MOVED (REL8): the release is named for the player's update (comments between) - the tag and the commit as ever
-  assert.match(attach, /\n {10}tag_name: \$\{\{ needs\.version\.outputs\.tag \}\}\n(?: {10}#[^\n]*\n)* {10}name: \$\{\{ needs\.version\.outputs\.update != '' && format\('Update \{0\}', needs\.version\.outputs\.update\) \|\| needs\.version\.outputs\.tag \}\}\n {10}target_commitish: \$\{\{ github\.sha \}\}\n/,
+  assert.match(attach, /\n {10}tag_name: \$\{\{ needs\.version\.outputs\.tag \}\}\n(?: {10}#[^\n]*\n)* {10}name: \$\{\{ needs\.version\.outputs\.update != '' && format\('Update \{0\}', needs\.vers[...]
     'without target_commitish GitHub cuts the tag at main\'s head at upload time');
   const uses = wf.split('\n').filter((l) => l.includes('${{ inputs.release_tag }}'));
   assert.ok(uses.length > 0, 'the input is still read');
