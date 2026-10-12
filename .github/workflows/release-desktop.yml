@@ -30,6 +30,15 @@ on:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+      compression:
+        description: 'High-compression format for download artifact (zstd / 7z)'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - zstd
+          - 7z
 
 permissions:
   contents: read
@@ -201,6 +210,23 @@ jobs:
         run: npx electron-builder --publish never
         working-directory: app
 
+      - name: Create High-Compression Archive (Optional)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.compression != 'standard' && inputs.compression != '' }}
+        shell: bash
+        run: |
+          cd app/release
+          if [ "${{ inputs.compression }}" = "zstd" ]; then
+            echo "Compressing installers with zstd..."
+            if command -v brew &> /dev/null; then brew install zstd; fi
+            if command -v apt-get &> /dev/null; then sudo apt-get update && sudo apt-get install -y zstd; fi
+            zstd -T0 -19 *.AppImage *.exe *.dmg 2>/dev/null || true
+          elif [ "${{ inputs.compression }}" = "7z" ]; then
+            echo "Compressing installers with 7z..."
+            if command -v brew &> /dev/null; then brew install p7zip; fi
+            if command -v apt-get &> /dev/null; then sudo apt-get update && sudo apt-get install -y p7zip-full; fi
+            7z a -t7z -mx=9 desktop-bundle-${{ matrix.os }}.7z *.AppImage *.exe *.dmg 2>/dev/null || true
+          fi
+
       - name: Hand the installers on
         uses: actions/upload-artifact@v4
         with:
@@ -209,6 +235,8 @@ jobs:
             app/release/*.AppImage
             app/release/*.exe
             app/release/*.dmg
+            app/release/*.zst
+            app/release/*.7z
             app/release/latest*.yml
             app/release/*.blockmap
           if-no-files-found: error
