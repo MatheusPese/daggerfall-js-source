@@ -235,12 +235,21 @@ jobs:
             app/release/*.AppImage
             app/release/*.exe
             app/release/*.dmg
-            app/release/*.zst
-            app/release/*.7z
             app/release/latest*.yml
             app/release/*.blockmap
           if-no-files-found: error
           retention-days: ${{ needs.version.outputs.tag != '' && 1 || 14 }}
+
+      - name: Upload Compressed Bundle Artifact
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.compression != 'standard' && inputs.compression != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-compressed-${{ matrix.os }}
+          path: |
+            app/release/*.zst
+            app/release/*.7z
+          if-no-files-found: error
+          retention-days: 14
 
   publish:
     needs: [version, build]
