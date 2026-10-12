@@ -109,8 +109,6 @@ const btnBy = (n, label) => buttons(n).find((b) => b.textContent === label);
 
 // ═══ THE BUTTON ══════════════════════════════════════════════════════
 
-// ═══ THE BUTTON ══════════════════════════════════════════════════════
-
 test('SOC3: the Social button stands in BOTH chat states with one badge law, is no chat tab, swallows its press, and a host that asked for none gets none (mutants: the button drawn on touch alone; the badge counting unread lines; a badge drawn at zero; the tab-bar button classed dfchat-tab; the press reaching the host)', () => {
   const log = new ChatLog({ now: () => T0 });
   const doc = fakeDocument(), win = fakeWindow();
@@ -121,9 +119,9 @@ test('SOC3: the Social button stands in BOTH chat states with one badge law, is 
   const both = find(root, 'dfchat-social');
   assert.equal(both.length, 2, 'one for each state of the chat - closed beside the Chat button, open in the tab bar');
   assert.deepEqual(both.map((b) => b.textContent), ['Social', 'Social']);
-  assert.equal(find(root, 'dfchat-social-out').length, 1);
+  assert.equal(find(root, 'dfsocial-social-out').length, 1);
   assert.equal(one(one(root, 'dfchat-box'), 'dfsocial-tab')?.parent?.className, 'dfsocial-tabs', 'the open state\'s sits IN the tab bar');
-  assert.equal(find(root, 'dfsocial-tab').length, log.tabs.length, 'and it is not a tab: every tab button is a row of the log');   // CHAT-CHAN: four rows now
+  assert.equal(find(root, 'dfchat-tab').length, log.tabs.length, 'and it is not a tab: every tab button is a row of the log');   // CHAT-CHAN: four rows now
   // AUDIT SOC C21: NO aria-label on the button. One overrode the whole of its content, so the badge - the only part
   // that ever changes - was never read out. The words are a title for the mouse, and the badge labels ITSELF.
   assert.equal(both[0].attrs['aria-label'], undefined, 'no label that swallows the badge');
