@@ -6,7 +6,6 @@ on:
       - 'app-v*'
     branches:
       - main
-    # Optional: Skip full desktop builds if only docs/markdown files change
     paths-ignore:
       - '**.md'
       - 'docs/**'
@@ -66,6 +65,7 @@ jobs:
 
   gate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,13 +79,40 @@ jobs:
       - name: Gate (the whole suite)
         run: npm run check
 
-  build:
+  # Build the site once on Linux to share across OS legs
+  build-site:
     needs: [version, gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install site dependencies
+        run: npm ci
+      - name: Build the site
+        env:
+          DFO_UPDATE: ${{ needs.version.outputs.update }}
+        run: npm run build
+      - name: Upload site dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: dist/ # Adjust if your site build output directory is different (e.g., build/)
+          retention-days: 1
+
+  build:
+    needs: [version, build-site]
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       NODE_OPTIONS: --max-old-space-size=4096
@@ -105,18 +132,18 @@ jobs:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
+            %LOCALAPPDATA%/electron/Cache
+            %LOCALAPPDATA%/electron-builder/Cache
             app/node_modules
           key: ${{ runner.os }}-electron-${{ hashFiles('app/package-lock.json', 'package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-electron-
 
-      - name: Install site dependencies
-        run: npm ci
-
-      - name: Build the site
-        env:
-          DFO_UPDATE: ${{ needs.version.outputs.update }}
-        run: npm run build
+      - name: Download built site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist/
 
       - name: Install shell dependencies
         run: npm ci
@@ -156,6 +183,7 @@ jobs:
     needs: [version, build]
     if: needs.version.outputs.tag != ''
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
       pull-requests: read
