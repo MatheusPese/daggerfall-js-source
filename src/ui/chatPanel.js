@@ -517,14 +517,14 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const socialButton = (cls) => {
     const b = el('button', `dfchat-social ${cls}`, 'Social');
     b.type = 'button';
-    // AUDIT SOC C21: NO aria-label ON THE BUTTON. One overrode the whole of its content, so the badge - the count of
-    // requests and invitations waiting on this player, the only thing on the button that ever changes - was read as
-    // "Friends and party" and nothing else. The word stays a title for the mouse; the badge names ITSELF, and the
-    // button's accessible name becomes "Social 3" the moment there is a 3.
     b.setAttribute('title', 'Friends and party');
     const badge = el('span', 'dfchat-badge');
     b.append(badge); socialBadges.push(badge);
     b.addEventListener('click', () => social.onToggle?.());
+    // Add propagation stoppers directly to every social button instance
+    for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) {
+      b.addEventListener(t, (e) => e.stopPropagation());
+    }
     return b;
   };
   const socialOut = social ? socialButton('dfchat-social-out') : null;
@@ -1159,7 +1159,6 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) openBtn.addEventListener(t, swallow);
   // SOC3: the closed-state Social button is outside the box, so it carries the box's own press rule - a thumb that
   // taps it must not also draw a weapon (D7). The tab-bar one is inside the box and already has it.
-  if (socialOut) for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) socialOut.addEventListener(t, swallow);
   // AUDIT ONESEAT H1: and ONE-SEAT's "Play online here" is outside the box too - a press on it reached the host's
   // mousedown as Mouse0 (ActivateCenterObject): the readied spell cast, and what stood at the centre was used
   for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) here.addEventListener(t, swallow);
