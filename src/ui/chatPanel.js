@@ -217,11 +217,11 @@ export const CHAT_STYLE_ID = 'dagger-chat-style';
  *  (14px / 6px 10px, pinned) are untouched, because a pixel face is not a reason to shrink a target. */
 export const CHAT_CSS = `
 ${PIXELIFY_FIVE_FACE}
-.dfchat { position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(44px + env(safe-area-inset-top, 0px));
+.dfchat { position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(44px + env(safe-area-inset-top, 0px)); width: min(var(--dfchat-w, 440px), calc(100vw - 28px)); z-index: 5; pointer-events: none; ${PIXEL\_FONT\_CSS} color: var(--bone, #e9e4d9); /\* Garante que o conteúdo inativo não suba caso o container tenha altura definida \*/ display: flex; flex-direction: column; justify-content: flex-end; }
   width: min(var(--dfchat-w, 440px), calc(100vw - 28px)); z-index: 5; pointer-events: none;
   ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); }
 .dfchat.touch { top: calc(72px + env(safe-area-inset-top, 0px)); }
-.dfchat-peek { display: flex; flex-direction: column; gap: 3px; }
+.dfchat-peek { display: flex; flex-direction: column; gap: 3px; /\* Compensa a altura do .dfchat-tabs (\~33px) + borda superior do box (1px) \*/ margin-top: 34px; /\* Compensa a borda lateral (1px) + padding lateral da lista (8px) para alinhar as colunas \*/ padding-left: 9px; }
 .dfchat-line { flex: none; font-size: calc(13px * var(--dfchat-scale, 1)); line-height: 1.35; overflow-wrap: anywhere; overflow: hidden; text-shadow: ${PIXEL_TEXT_SHADOW}; }
 .dfchat-name { color: ${NAME_COLOURS.other.light}; font-weight: 600; }   /* NAME-INK: a name is never the words' colour */
 .dfchat-tag { color: var(--dim, #9a9486); font-size: calc(11px * var(--dfchat-scale, 1)); margin: 0 6px 0 2px; }
