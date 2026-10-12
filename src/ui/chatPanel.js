@@ -442,7 +442,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   openBtn.type = 'button';
   const badgeOut = el('span', 'dfchat-badge');
   openBtn.append(badgeOut);
-  const tabs = el('div', 'dfchat-tabs');
+  const tabs = el('div', 'dfchat-tabs dfsocial-tabs');
 
   if (social) tabs.append(socialButton('dfchat-social-tab'));
   
