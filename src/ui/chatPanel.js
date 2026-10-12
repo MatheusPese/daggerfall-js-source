@@ -1,153 +1,4 @@
-// CHAT1 (2026-09-12, Mac: "I want to add a new UI element. The live chat
-// in enhanced format. Players will be able to type and chat live with
-// other players. Currently I just want one world tab with the ability
-// to add more tabs at a later time"): THE PANEL - the enhanced skin's
-// DOM chat, top-left over the world, under the touch layer's corner
-// buttons.
-//
-// TWO STATES. Closed: the active tab's last few lines stand over the
-// world and fade (net/chat.js peek), with a one-word hint (Enter) or,
-// on a touch device, a button. Open: a tab bar (one tab per row of
-// CHAT_TABS - the World tab alone today - a badge on each with unread
-// lines), the tab's lines, and the field. Enter opens the panel and
-// puts the caret in the field; Enter in the field sends the line and
-// closes the panel (the MMO gesture: type, send, back to the world);
-// an empty Enter and Escape close it. The touch layer's Send keeps the
-// panel open (a thumb typed it; the next line is likely).
-//
-// THE KEYS ARE THE FIELD'S (CG2). One capture listener on the window,
-// alive while the panel exists: a key typed into the field is stopped
-// there, so the host's ring (scenes/world.js `keys.add`) never fills
-// from a chat line and typing 'w' walks no one - the browser's own
-// reload keys stay swallowed (ui/input.js swallowBrowserKey) so F5 in
-// the field does not destroy the session. The key UP is not stopped:
-// a key held when the panel opened leaves the ring the moment it is
-// released. Enter opens the panel only when no enhanced overlay is up
-// (enhancedOverlays), no other field owns the key, the host says the
-// game is not paused (canOpen), and the event is the keyboard's own -
-// the touch layer's ⏎ button synthesizes an untrusted Enter for the
-// windows it drives, and that one must not open the chat.
-//
-// THE MOUSE IS THE PANEL'S. The host adds every window mousedown to
-// its ring and swings on the left button outdoors; a PRESS inside the
-// open box is stopped at the box, so tapping Send draws no weapon. A
-// RELEASE is never stopped (AUDIT CHAT C5): the host's mouseup clears
-// its ring, and a press begun on the canvas and let go over the box
-// must still let go, or the weapon swings until the next click.
-//
-// AUDIT CHAT (2026-09-12, before the merge). The open key is the
-// ActivateCursor binding (Enter by default), resolved through the
-// registry, not a literal (C4: the panel was eating DFU's cursor key
-// at the window, and its own key could not be rebound); opening frees
-// the pointer and closing takes it back inside the same gesture (C2:
-// the panel opened under pointer lock, so the mouse kept looking and
-// swinging while the player typed and nothing in the box could be
-// clicked - the hosts' onOpen/onClose); an Enter that commits an IME
-// candidate is the IME's (C3: the first Enter of every Japanese word
-// shipped the half-composed line); a held Enter opens once and its
-// repeats send nothing (C6); Tab stays in the field (C7: it walked
-// focus onto Send and gave the keyboard back to the game); the list
-// grows by the lines that arrived and keeps a reader's scroll (C8);
-// the root is no live region (C9: every repaint re-announced the
-// whole panel); a refused line keeps the field and the panel (B2); a
-// name carries a tag from the guarded id (A5); the dial counts as an
-// overlay (C1, in pixelDial.js) and an open overlay hides the panel.
-//
-// CHAT-FIT (2026-09-22, Mac: "names sometimes take up 2 rows, the
-// list isnt scrollable and continues to grow, enlarging the chat.
-// Glyphs should also show on chat names in the chat itself"): THREE
-// DEFECTS, and the first two have one cause. The roster column was a
-// flex child that CONTRIBUTED ITS HEIGHT: `.dfchat-cols` has no height
-// of its own, so a column of nineteen rows stretched the row, the box
-// grew with it, and a list that can always grow never scrolls - the
-// `overflow-y: auto` on it was true and never reached. The column's
-// content is absolute inside it now (`.dfchat-who-inner`), so the
-// column is exactly as tall as the conversation beside it and the
-// list scrolls inside that. A row is ONE LINE: the title, the name,
-// the glyphs and the tag stand in a nowrap flex line and the NAME is
-// the one that gives (ellipsis, the full name as its title), because
-// a title and a glyph are a few pixels and a name is what the row is
-// for - `overflow-wrap: anywhere` had every long name folding under
-// its own title. And a chat LINE wears the author's badge the way the
-// roster row does: the title before the name, the glyphs after it,
-// drawn by the one SVG door the roster already had, asked of the host
-// (`badgeOf`, net/online.js's answer for me, a peer, or a peer this
-// session once met) on the same pass that asks the name's colour, so a
-// title equipped mid-conversation reaches the lines already said.
-//
-// SOC3 (2026-09-16, Mac: "A social button next to the chat UI, that
-// when tapped opens the new friends list + party interface ... be able
-// to invite friends or other individuals to the new 4 person party
-// system. Party system: Upon joining a party, the players name who are
-// in a party together should turn green"): THREE SEAMS, AND NO NET.
-//
-// This file still imports no socket and no social module. What SOC3
-// adds is three OPTIONS the host fills from the picture it already
-// holds (net/social.js, over the hub's link):
-//   `social`  - the button beside the chat's controls, in BOTH states,
-//               with a badge counting what is waiting on the player
-//               (requests to me + live invites). The button only opens
-//               something the HOST owns (ui/socialPanel.js), so the
-//               chat neither knows nor imports the panel.
-//   `nameColor` - a peer id in, a CSS colour or null out. The chat
-//               lines' author names and the roster rows wear it, which
-//               is where "the players name ... should turn green"
-//               lands in the DOM. The colour is the HOST's answer, not
-//               a class this file invents, because who is in my party
-//               is the hub's word and nothing the panel can see.
-//   `rowActions` - what a click on a roster row offers for that PEER.
-//               The roster is the one place a stranger has a name, and
-//               "other individuals" is exactly that column; the labels,
-//               their enabled state and the REASON a disabled one gives
-//               all come from the host (net/social.js actionsFor).
-// A host that passes none of the three gets the chat it had, byte for
-// byte: no button is built, no colour is asked for, no row is a door.
-//
-// CHAT-SIZE (2026-09-23, Mac: "I want to implement the ability to click and
-// drag the chat to resize/along with the text"): THE CORNER. A grip at the
-// box's bottom-right corner drags it from there: the WIDTH is
-// the text's scale (width / 440, the sheet's own width, between 0.8 and
-// 1.8 - every size the chat's TEXT is drawn at is `calc(Npx * scale)`:
-// the lines, the tags and the times, the roster's rows and its column,
-// the field) and the HEIGHT is how many lines the list shows. So a wider
-// chat is a bigger chat, its lines wrapping where they did, and a taller
-// one is more history. What a THUMB presses does not scale (the buttons,
-// the tabs: AUDIT SOC C8's 44px targets are the targets). The two numbers
-// are the player's (uiPrefs chatWidth/chatListHeight; null is the sheet's
-// own size), arrow keys on the focused grip step them, and a double click
-// on it gives the sheet's size back. The panel publishes its footprint on
-// the document - the width and the list height as the same custom
-// properties its own rules read, and `data-dfchat-fit` for whether the
-// friends panel (ui/socialPanel.js) still fits BESIDE it - because that
-// panel was placed off the chat's old fixed size (AUDIT SOC C13) and a
-// resized chat would have slid under it.
-//
-// CHAT-SCROLL (2026-09-23, Starempire42 on Discord: "Make it so when you
-// open the chat it automatically scrolls to the newest message ...
-// Currently when you open the chat it just stays idle so you have to
-// manually scroll down to the newest message every single time"): AN
-// OPEN LANDS ON THE NEWEST LINE, and the list stays there while it is
-// read at the bottom. Two causes, one law. (1) The follow rule asked the
-// LIST where the reader was - "at the bottom, within 8px" - on the first
-// paint after an open, which is a box that was `display: none` a moment
-// ago. What a hidden scroller remembers is the engine's to decide: Chromium
-// keeps the offset, other engines drop it to the top, and a top that is
-// taller than the box reads as "the reader scrolled up" - so the list was
-// left on the oldest line. And a reader who HAD scrolled up before closing
-// found the old place again on every open, which is AUDIT CHAT C8's rule
-// (keep a reader's scroll) applied to a moment it was never written for:
-// C8 is about lines arriving under a reader, not about coming back. So an
-// open, and a tab change, land on the newest line whatever the box says.
-// (2) The badge pass lays a title and glyphs into a line AFTER the list
-// scrolled to its bottom, and a line that wraps under its badge pushed the
-// newest out of view by its own growth - so the scroll to the newest is
-// the paint's LAST act, after every pass that can change a line's height,
-// and a later badge that re-lays a line keeps a reader at the bottom there.
-// While the panel is open C8 stands: a reader who scrolled up is left
-// where they are, and the lines that arrive under them are counted on a
-// bar under the list (`N new - jump to newest`) that takes them there.
-//
-// Not a DFU member: Daggerfall Unity has no chat. Ledger A row (ONLINE).
+
 import { isTextEntryTarget, swallowBrowserKey, bindings } from './input.js';
 import { actionForCode, codeMeans } from '../systems/inputActions.js';
 import { overlayOpen } from './enhancedOverlays.js';
@@ -199,27 +50,11 @@ export function chatFit(viewportWidth, width = null) {
 
 export const CHAT_STYLE_ID = 'dagger-chat-style';
 
-/** The panel's sheet: the enhanced tokens (enhancedStyle.js) where they exist, a fallback where the skin's sheet is not loaded.
- *
- *  FONT1 (2026-09-16, Mac: "Especially the new online interfaces font use our enhanced font"): THE FACE IS THE
- *  SKIN'S, NOT THE LAUNCHER'S. This sheet set `--data` (Barlow Semi Condensed) - which is the MENU's face, the one
- *  the boot screens and the settings pages are set in - so the chat stood over an enhanced world in a font nothing
- *  else in that world uses. In-game the enhanced skin is the pixel stack (ui/pixelifyFive.js PIXEL_STACK, the same
- *  face ui/enhancedHud.js and every floating window wear), unsmoothed, and text laid over the world takes the HUD's
- *  hard shadow pair rather than a blur: a blurred drop shadow under a pixel glyph reads as a rendering fault.
- *  The @font-face for the FIVE rides this sheet too (FIX-D), because this sheet is injected on its own and a
- *  document that never mounted the skin's stylesheet would otherwise draw Pixelify's 5 - the glyph that reads as 8.
- *
- *  AND THE SIZES CAME DOWN A STEP where the line is long. Pixelify Sans measures about 1.29x the width of Barlow
- *  Semi Condensed at one size (measured in Chromium, tools/font1Probe.mjs), so every size here is really a size and
- *  a quarter: the chat line is 13px where it was 14, the tag/time/hint/status 10-11 where they were 11-12, the
- *  roster row 12 where it was 13. Nothing a THUMB presses moved - AUDIT SOC C8's 44px targets and the button type
- *  (14px / 6px 10px, pinned) are untouched, because a pixel face is not a reason to shrink a target. */
 export const CHAT_CSS = `
 ${PIXELIFY_FIVE_FACE}
 .dfchat { position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(44px + env(safe-area-inset-top, 0px)); 
   width: min(var(--dfchat-w, 440px), calc(100vw - 28px)); z-index: 5; pointer-events: none; 
-  ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); display: flex; flex-direction: column; justify-content: flex-end; }
+  ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); display: flex; flex-direction: column; justify-content: flex-start; }
 .dfchat.touch { top: calc(72px + env(safe-area-inset-top, 0px)); }
 .dfchat-peek { display: flex; flex-direction: column; gap: 3px; margin-top: 34px; padding-left: 9px; }
 .dfchat-line { flex: none; font-size: calc(13px * var(--dfchat-scale, 1)); line-height: 1.35; overflow-wrap: anywhere; overflow: hidden; text-shadow: ${PIXEL_TEXT_SHADOW}; }
@@ -501,31 +336,6 @@ export function isOpenKey(e, { canOpen = () => true, overlay = overlayOpen, acti
     && !isTextEntryTarget(e.target) && !overlay() && !!canOpen();
 }
 
-/**
- * The panel over `log` (net/chat.js). `onSend(tabId, text)` takes a
- * typed line and answers false when it did not go (the field keeps
- * it), or - CHAT-CHAN - 'read' when what it did is lines to READ (the
- * command list): the field clears and the chat stays open, where any
- * other answer closes it; `canOpen()` is the host's word on whether the game can take a
- * chat right now; `onOpen`/`onClose` are the host's pointer-lock door
- * (release on open, take back on close - inside the gesture). Handed
- * the document and the window so the tests drive it headless.
- *
- * SOC3's three, all optional and all the HOST's answers (see the
- * header): `social` is `{ onToggle, pending }` - the button beside the
- * chat's controls and the number on its badge; `nameColor(peerId)` is
- * a CSS colour or null for an author's name and a roster row;
- * `rowActions(peerId)` is `[{ label, enabled, why, run }]` - the menu a
- * click on a roster row opens.
- *
- * AUDIT SOC C2/C14: `above()` is the host's word on whether a social
- * surface stands OVER the chat (the friends panel, the F-menu). All
- * three listen for Escape on the window in capture, so ONE press used
- * to close two of them. The topmost answers: with something above it
- * the chat IGNORES Escape - it does not close and it does not stop the
- * key - and when it does handle one it calls stopImmediatePropagation,
- * so neither a sibling surface nor the host's pause door sees it.
- */
 export function createChatPanel({ log, onSend, roster = null, canOpen = () => true, onOpen = null, onClose = null, above = () => false, action = actionOfKey, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), social = null, nameColor = null, rowActions = null, badgeOf = null } = {}) {
   injectChatStyle(doc);
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
@@ -983,19 +793,6 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (log.open) paint(true);
   };
 
-  /**
-   * SOC3: the menu under an opened roster row. Every label, its enabled
-   * state and the REASON a disabled one carries come from the host
-   * (net/social.js actionsFor), so this file decides nothing about who
-   * may be friended or invited - it draws an answer and calls back.
-   *
-   * A refused act is a SENTENCE, never a missing button: "already
-   * friends" and "the party is full" are the two things a player most
-   * wants to be told, and a row that silently drops the option teaches
-   * neither. AUDIT SOC C11: the sentence is DRAWN beside the label as
-   * well as titled - a `title` is a mouse hover, and the touch skin
-   * this panel also runs in has no hover at all.
-   */
   const rowMenu = (peerId) => {
     const menu = el('div', 'dfchat-rowmenu');
     for (const a of rowActions(peerId) ?? []) {
