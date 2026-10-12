@@ -533,20 +533,6 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   // SOC3: the two Social buttons - one for each state of the panel, built only when the host asked for them. The
   // badge is a SPAN of the chat's own badge class, so a request waiting on the player counts the way an unread line
   // does; its colour in the sheet is what keeps the two from reading as one number.
-  const socialBadges = [];
-  const socialButton = (cls) => {
-    const b = el('button', `dfchat-social ${cls}`, 'Social');
-    b.type = 'button';
-    b.setAttribute('title', 'Friends and party');
-    const badge = el('span', 'dfchat-badge');
-    b.append(badge); socialBadges.push(badge);
-    b.addEventListener('click', () => social.onToggle?.());
-    // Add propagation stoppers directly to every social button instance
-    for (const t of ['pointerdown', 'mousedown', 'click', 'touchstart']) {
-      b.addEventListener(t, (e) => e.stopPropagation());
-    }
-    return b;
-  };
 
   main.append(list, jump, emojiGrid, form);
   cols.append(main, who);
