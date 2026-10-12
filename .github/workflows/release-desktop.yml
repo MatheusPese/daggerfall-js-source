@@ -129,6 +129,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_check == false }}
         run: npm run test:changed
 
+  # NEW: suite job - the full test + build check that packaging legs must require
   suite:
     needs: [version, gate]
     runs-on: ubuntu-latest
