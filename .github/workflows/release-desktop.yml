@@ -125,25 +125,42 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
         run: npm run types
 
-      - name: Run Test
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
-        run: npm test
-
-      - name: Run Build Check
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
-        run: npm run build
-
       - name: Run Fast Changed-Files Test
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_check == false }}
         run: npm run test:changed
 
-  build-site:
+  suite:
     needs: [version, gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install site dependencies
+        run: npm ci
+
+      - name: Run Test
+        run: npm test
+
+      - name: Run Build Check
+        run: npm run build
+
+  build-site:
+    needs: [version, gate, suite]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -163,7 +180,7 @@ jobs:
           retention-days: 1
 
   build:
-    needs: [version, build-site, select-os]
+    needs: [version, build-site, select-os, suite]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.select-os.outputs.matrix) }}
@@ -175,6 +192,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: actions/setup-node@v4
@@ -207,10 +225,9 @@ jobs:
 
       - name: Stamp the version
         if: needs.version.outputs.version != ''
-        shell: bash
         env:
           VERSION: ${{ needs.version.outputs.version }}
-        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+        run: node -e "const {execSync}=require('child_process'); execSync(`npm version ${process.env.VERSION} --no-git-tag-version --allow-same-version`, {stdio:'inherit'});"
         working-directory: app
 
       - name: No updater in a build that is not a release
