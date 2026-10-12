@@ -117,9 +117,17 @@ jobs:
       - name: Install site dependencies
         run: npm ci
 
-      - name: Run Full Gate Check
+      - name: Run Lint
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
-        run: npm run check
+        run: npm run lint
+
+      - name: Run Type Check
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
+        run: npm run typecheck
+
+      - name: Run Tests
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
+        run: npm test
 
       - name: Run Fast Changed-Files Test
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_check == false }}
