@@ -530,9 +530,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     tabButtons.set(tab.id, { b, badge, name: null });
   }
   tabs.append(tabList);
-  // SOC3: the two Social buttons - one for each state of the panel, built only when the host asked for them. The
-  // badge is a SPAN of the chat's own badge class, so a request waiting on the player counts the way an unread line
-  // does; its colour in the sheet is what keeps the two from reading as one number.
+
 
   main.append(list, jump, emojiGrid, form);
   cols.append(main, who);
