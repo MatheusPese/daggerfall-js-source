@@ -52,9 +52,23 @@ export const CHAT_STYLE_ID = 'dagger-chat-style';
 
 export const CHAT_CSS = `
 ${PIXELIFY_FIVE_FACE}
-.dfchat { position: fixed; left: calc(14px + env(safe-area-inset-left, 0px)); top: calc(44px + env(safe-area-inset-top, 0px)); 
-  width: min(var(--dfchat-w, 440px), calc(100vw - 28px)); z-index: 5; pointer-events: none; 
-  ${PIXEL_FONT_CSS} color: var(--bone, #e9e4d9); display: flex; flex-direction: column; justify-content: flex-start; }
+.dfchat { 
+  position: fixed; 
+  left: calc(14px + env(safe-area-inset-left, 0px)); 
+  top: calc(44px + env(safe-area-inset-top, 0px)); 
+  width: min(var(--dfchat-w, 440px), calc(100vw - 28px)); 
+  z-index: 5; 
+  pointer-events: none; 
+  ${PIXEL_FONT_CSS} 
+  color: var(--bone, #e9e4d9); 
+  /* CHANGE: Use CSS grid to layer peek and box in the exact same space */
+  display: grid; 
+  align-content: end;
+}
+.dfchat-peek, .dfchat-box { 
+  grid-area: 1 / 1; 
+}
+
 .dfchat.touch { top: calc(72px + env(safe-area-inset-top, 0px)); }
 .dfchat-peek { display: flex; flex-direction: column; gap: 3px; margin-top: 34px; padding-left: 9px; }
 .dfchat-line { flex: none; font-size: calc(13px * var(--dfchat-scale, 1)); line-height: 1.35; overflow-wrap: anywhere; overflow: hidden; text-shadow: ${PIXEL_TEXT_SHADOW}; }
@@ -124,9 +138,10 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-open { display: none; pointer-events: auto; margin-top: 4px; align-items: center; gap: 6px; }
 .dfchat.touch .dfchat-open { display: inline-flex; }
 .dfchat.touch .dfchat-hint { display: none; }
-.dfchat-box { display: none; position: relative; pointer-events: auto; background: rgba(14, 16, 19, .84); border: ${CHAT_BOX_BORDER}px solid var(--iron, #2b323b); border-radius: 6px; backdrop-filter: blur(4px); }
-.dfchat[data-state="open"] .dfchat-box { display: flex; flex-direction: column; }
-.dfchat[data-state="open"] .dfchat-peek, .dfchat[data-state="open"] .dfchat-hint, .dfchat[data-state="open"] .dfchat-open { display: none; }
+.dfchat-box { display: flex;  flex-direction: column; position: relative; pointer-events: auto; background: rgba(14, 16, 19, .84); border: ${CHAT_BOX_BORDER}px solid var(--iron, #2b323b); border-radius: 6px; backdrop-filter: blur(4px); /* Keep the box hidden and non-interactive by default, but maintain its exact size/height */
+visibility: hidden; opacity: 0; pointer-events: none; }
+.dfchat[data-state="open"] .dfchat-box {visibility: visible; opacity: 1; pointer-events: auto; }
+.dfchat[data-state="open"] .dfchat-peek, .dfchat[data-state="open"] .dfchat-hint, .dfchat[data-state="open"] .dfchat-open { visibility: hidden; opacity: 0; pointer-events: none; }
 .dfchat-tabs { display: flex; gap: 2px; padding: 4px 4px 0; border-bottom: 1px solid var(--iron, #2b323b); }
 .dfchat-tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--dim, #9a9486); font: inherit; font-size: 13px;
   letter-spacing: .05em; text-transform: uppercase; padding: 6px 10px; cursor: pointer; flex: none; white-space: nowrap; }
