@@ -109,9 +109,14 @@ const btnBy = (n, label) => buttons(n).find((b) => b.textContent === label);
 
 // ═══ THE BUTTON ══════════════════════════════════════════════════════
 
-const root = doc.body.children[0];
-  const socialButton = find(root, 'dfchat-social');
-  const both = socialButton;
+test('SOC3: the Social button stands in BOTH chat states with one badge law, is no chat tab, swallows its press, and a host that asked for none gets none (mutants: the button drawn on touch alone; the badge counting unread lines; a badge drawn at zero; the tab-bar button classed dfchat-tab; the press reaching the host)', () => {
+  const log = new ChatLog({ now: () => T0 });
+  const doc = fakeDocument(), win = fakeWindow();
+
+  let pending = 0, toggles = 0;
+  const panel = createChatPanel({ log, onSend: () => true, action: defaultAction, doc, win, touch: false, social: { onToggle: () => { toggles++; }, pending: () => pending } });
+  const root = doc.body.children[0];
+  const both = find(root, 'dfchat-social');
   assert.equal(both.length, 2, 'one for each state of the chat - closed beside the Chat button, open in the tab bar');
   assert.deepEqual(both.map((b) => b.textContent), ['Social', 'Social']);
   assert.equal(find(root, 'dfchat-social-out').length, 1);
