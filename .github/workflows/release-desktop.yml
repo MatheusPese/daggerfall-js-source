@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # REL3: the version is the commit count, which needs the whole history
           persist-credentials: false
 
       - name: Resolve release version
@@ -133,26 +133,29 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_check == true }}
         run: npm run check
 
+      - name: Upload site dist artifact
+        # gate now produces the site build (npm run check includes build); upload it for the packaging legs
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: dist/
+          retention-days: 1
+
   build-site:
     needs: [version, gate]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - name: Download site dist artifact
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-      - name: Install site dependencies
-        run: npm ci
-      - name: Build the site
-        env:
-          DFO_UPDATE: ${{ needs.version.outputs.update }}
-        run: npm run build
-      - name: Upload site dist artifact
+          name: site-dist
+          path: dist/
+
+      - name: Sanity: list dist
+        run: ls -al dist || true
+
+      - name: Upload site dist artifact (re-publish for downstream)
         uses: actions/upload-artifact@v4
         with:
           name: site-dist
