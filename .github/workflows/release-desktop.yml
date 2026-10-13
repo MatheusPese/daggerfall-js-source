@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # REL3: the version is the commit count, which needs the whole history
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Resolve release version
@@ -134,7 +134,6 @@ jobs:
         run: npm run check
 
       - name: Upload site dist artifact
-        # gate now produces the site build (npm run check includes build); upload it for the packaging legs
         uses: actions/upload-artifact@v4
         with:
           name: site-dist
@@ -323,7 +322,7 @@ jobs:
 
       - name: Stage the release as a draft, every file attached
         id: release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.update != '' && format('Update {0}', needs.version.outputs.update) || needs.version.outputs.tag }}
