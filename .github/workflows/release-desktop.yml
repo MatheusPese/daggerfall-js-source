@@ -151,7 +151,7 @@ jobs:
           name: site-dist
           path: dist/
 
-      - name: Sanity: list dist
+      - name: 'Sanity: list dist'
         run: ls -al dist || true
 
       - name: Upload site dist artifact (re-publish for downstream)
