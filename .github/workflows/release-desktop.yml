@@ -162,7 +162,7 @@ jobs:
           retention-days: 1
 
   build:
-    needs: [version, gate]
+    needs: [version, gate, select-os]
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.select-os.outputs.matrix) }}
